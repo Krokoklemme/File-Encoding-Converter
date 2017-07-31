@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Diagnostics;
 
 namespace FileEncodingConverter
 {
@@ -183,7 +184,7 @@ namespace FileEncodingConverter
                 #region --help
                 if (args[0] == "--help" || args[0] == "-h")
                 {
-                    Console.WriteLine("\tFile Encoding Converter\n\nTurns the encoding of all files into UTF-8 and\nexcludes files with a globally specified extensions\n\n\t--help\t\t-h\t\tShows this help\n\t--add\t\t-a\t\tAdds an extension to the global list (without the dot)\n\t--remove\t-r\t\tRemoves an extension from the global list\n\t--list\t\t-l\t\tLists all currently disabled extensions\n\t--show\t\t-s   [all]\tShows all unrecognized fileformats. If it's called with 'all', it'll list all fileformats found\n\t--verbose\t-v\t\tRuns Encoder in verbose mode (prints messages while working)\n\t--whitelist-extensionless\tRemoves extensionless files from the blacklist\n\t--blacklist-extensionless\tAdds extensionless files to the blacklist\n\t--default\t\t\tResets the configuration to a default value\n\nCopyright (c) 2017 Henning Hoppe");
+                    Console.WriteLine("\tFile Encoding Converter\n\nTurns the encoding of all files into UTF-8 and\nexcludes files with a globally specified extensions\n\n\t--help\t\t-h\t\tShows this help\n\t--add\t\t-a\t\tAdds an extension to the global list (without the dot)\n\t--remove\t-r\t\tRemoves an extension from the global list\n\t--list\t\t-l\t\tLists all currently disabled extensions\n\t--show\t\t-s   [all]\tShows all unrecognized fileformats. If it's called with 'all', it'll list all fileformats found\n\t--verbose\t-v\t\tRuns Encoder in verbose mode (prints messages while working)\n\t--whitelist-extensionless\tRemoves extensionless files from the blacklist\n\t--blacklist-extensionless\tAdds extensionless files to the blacklist\n\t--info\t-i   [extension...]\tLooks up information on the specified filetypes\n\t--default\t\t\tResets the configuration to a default value\n\nCopyright (c) 2017 Henning Hoppe");
                 }
                 #endregion
 
@@ -307,6 +308,28 @@ namespace FileEncodingConverter
                 {
                     Properties.Settings.Default.WhitelistExtensions = false;
                     Properties.Settings.Default.Save();
+                }
+                #endregion
+
+                #region --info
+                else if (args[0] == "--info" || args[0] == "-i")
+                {
+                    if (args.Length >= 2)
+                    {
+                        for (var i = 1; i < args.Length; i++)
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = @"https://fileinfo.com/extension/" + args[i],
+                                CreateNoWindow = true,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("You must specify a file to look up");
+                    }
                 }
                 #endregion
 
