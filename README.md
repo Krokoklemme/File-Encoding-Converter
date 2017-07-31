@@ -4,6 +4,3 @@ Converts all files in the current working directory and its subdirectories into 
 
 
 Make sure to add the directory of where you stored the `encoder.exe` to your `PATH`-Variable
-
-
-**Before** you're using Encoder for the first time, call `encoder --default` and enter "Yes" to get the default settings installed
