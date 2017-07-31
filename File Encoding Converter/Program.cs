@@ -160,6 +160,41 @@ namespace FileEncodingConverter
             }
         }
 
+        private static void ResetToDefaults()
+        {
+            ExcludedExtensions = new List<string>
+            {
+                ".exe",
+                ".dll",
+                ".com",
+                ".db",
+                ".sys",
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".pdb",
+                ".mp3",
+                ".mp4",
+                ".mov",
+                ".ogg",
+                ".wav",
+                ".webp",
+                ".obj",
+                ".bmp",
+                ".fbx",
+                ".rar",
+                ".zip",
+                ".7z",
+                ".jar"
+            };
+
+            Properties.Settings.Default.WhitelistExtensions = false;
+            Properties.Settings.Default.Save();
+
+            File.WriteAllLines(IgnoreFile, ExcludedExtensions);
+        }
+
         // convenience variables
         protected internal static List<string> ExcludedExtensions { get; set; }
         protected internal static string IgnoreFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore");
@@ -167,6 +202,11 @@ namespace FileEncodingConverter
 
         static void Main(string[] args)
         {
+            if (!File.Exists(IgnoreFile))
+            {
+                ResetToDefaults();
+            }
+            
             ExcludedExtensions = new List<string>();
             // Load all currently disabled file-extensions
             try
@@ -339,35 +379,7 @@ namespace FileEncodingConverter
                     Console.WriteLine("Are you sure you want to reset to defaults? This operation is not reversable. Write 'Yes' and press Enter to confirm");
                     if (Console.ReadLine().ToLowerInvariant() == "Yes".ToLowerInvariant())
                     {
-                        ExcludedExtensions.Clear();
-                        ExcludedExtensions.Add(".exe");
-                        ExcludedExtensions.Add(".dll");
-                        ExcludedExtensions.Add(".com");
-                        ExcludedExtensions.Add(".db");
-                        ExcludedExtensions.Add(".sys");
-                        ExcludedExtensions.Add(".png");
-                        ExcludedExtensions.Add(".jpg");
-                        ExcludedExtensions.Add(".jpeg");
-                        ExcludedExtensions.Add(".gif");
-                        ExcludedExtensions.Add(".pdb");
-                        ExcludedExtensions.Add(".mp3");
-                        ExcludedExtensions.Add(".mp4");
-                        ExcludedExtensions.Add(".mov");
-                        ExcludedExtensions.Add(".ogg");
-                        ExcludedExtensions.Add(".wav");
-                        ExcludedExtensions.Add(".webp");
-                        ExcludedExtensions.Add(".obj");
-                        ExcludedExtensions.Add(".bmp");
-                        ExcludedExtensions.Add(".fbx");
-                        ExcludedExtensions.Add(".rar");
-                        ExcludedExtensions.Add(".zip");
-                        ExcludedExtensions.Add(".7z");
-                        ExcludedExtensions.Add(".jar");
-
-                        Properties.Settings.Default.Reset();
-                        Properties.Settings.Default.Save();
-
-                        File.WriteAllLines(IgnoreFile, ExcludedExtensions);
+                        ResetToDefaults();
                         Console.WriteLine("Extension-Database and settings have been reset to default");
                     }
                     else
