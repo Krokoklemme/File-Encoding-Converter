@@ -26,12 +26,12 @@ namespace FileEncodingConverter.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool whitelistExtensions {
+        public bool WhitelistExtensions {
             get {
-                return ((bool)(this["whitelistExtensions"]));
+                return ((bool)(this["WhitelistExtensions"]));
             }
             set {
-                this["whitelistExtensions"] = value;
+                this["WhitelistExtensions"] = value;
             }
         }
     }

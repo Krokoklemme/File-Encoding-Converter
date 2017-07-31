@@ -110,7 +110,7 @@ namespace FileEncodingConverter
             foreach (var filepath in GetFiles(CWD))
             {
                 // If the file has no extension and extensionless files aren't whitelisted, there's no point in continuing
-                if (!Path.HasExtension(filepath) && !Properties.Settings.Default.whitelistExtensions)
+                if (!Path.HasExtension(filepath) && !Properties.Settings.Default.WhitelistExtensions)
                     continue;
 
                 var ignoreFile = false;
@@ -297,7 +297,7 @@ namespace FileEncodingConverter
                 #region --whitelist-extensionless
                 else if (args[0] == "--whitelist-extensionless")
                 {
-                    Properties.Settings.Default.whitelistExtensions = true;
+                    Properties.Settings.Default.WhitelistExtensions = true;
                     Properties.Settings.Default.Save();
                 }
                 #endregion
@@ -305,7 +305,7 @@ namespace FileEncodingConverter
                 #region --blacklist-extensionless
                 else if (args[0] == "--blacklist-extensionless")
                 {
-                    Properties.Settings.Default.whitelistExtensions = false;
+                    Properties.Settings.Default.WhitelistExtensions = false;
                     Properties.Settings.Default.Save();
                 }
                 #endregion
