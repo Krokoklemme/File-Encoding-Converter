@@ -102,18 +102,75 @@ namespace FileEncodingConverter
             return Encoding.ASCII;
         }
 
+        protected internal static void Convert(bool verbose = false)
+        {
+            var totalConverted = 0;
+
+            // enumarate all files in all subdirectories
+            foreach (var filepath in GetFiles(CWD))
+            {
+                // If the file has no extension and extensionless files aren't whitelisted, there's no point in continuing
+                if (!Path.HasExtension(filepath) && !Properties.Settings.Default.whitelistExtensions)
+                    continue;
+
+                var ignoreFile = false;
+
+                // determine if the program should ignore the file, based on the file extension
+                foreach (var ext in ExcludedExtensions)
+                {
+                    if (Path.GetExtension(filepath).ToLowerInvariant() == ext.ToLowerInvariant())
+                    {
+                        ignoreFile = true;
+                        break;
+                    }
+                }
+
+                // if the file ís not being ignored, read all bytes,
+                // convert them to UTF-8 and write them to the file again
+                if (!ignoreFile)
+                {
+                    try
+                    {
+                        File.WriteAllBytes(
+                            filepath,
+                            Encoding.Convert(
+                                GetEncoding(filepath),
+                                Encoding.UTF8,
+                                File.ReadAllBytes(filepath)
+                            )
+                        );
+
+                        if (verbose)
+                        {
+                            Console.WriteLine("Successfully converted " + filepath);
+                            totalConverted++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine("Failed to convert " + filepath + ":\n" + ex.Message + "\n" + ex.StackTrace);
+                    }
+                }
+            }
+
+            if (verbose)
+            {
+                Console.WriteLine("\nSuccessfully converted a total of " + totalConverted + " files");
+            }
+        }
+
         // convenience variables
+        protected internal static List<string> ExcludedExtensions { get; set; }
         protected internal static string IgnoreFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore");
         protected internal static string CWD => Directory.GetCurrentDirectory();
 
         static void Main(string[] args)
         {
-            var excludedExtensions = new List<string>();
-
+            ExcludedExtensions = new List<string>();
             // Load all currently disabled file-extensions
             try
             {
-                excludedExtensions.AddRange(File.ReadAllLines(IgnoreFile));
+                ExcludedExtensions.AddRange(File.ReadAllLines(IgnoreFile));
             }
             catch (FileNotFoundException)
             {
@@ -126,7 +183,7 @@ namespace FileEncodingConverter
                 #region --help
                 if (args[0] == "--help" || args[0] == "-h")
                 {
-                    Console.WriteLine("\tFile Encoding Converter\n\nTurns the encoding of all files into UTF-8 and\nexcludes files with a globally specified extensions\n\n\t--help\t\t-h\tShows this help\n\t--add\t\t-a\tAdds an extension to the global list (without the dot)\n\t--remove\t-r\tRemoves an extension from the global list\n\t--list\t\t-l\tLists all currently disabled extensions\n\t--show\t\t-s - [all]\tShows all unrecognized fileformats. If it's called with 'all', it'll list all fileformats found\n\nCopyright (c) 2017 Henning Hoppe");
+                    Console.WriteLine("\tFile Encoding Converter\n\nTurns the encoding of all files into UTF-8 and\nexcludes files with a globally specified extensions\n\n\t--help\t\t-h\t\tShows this help\n\t--add\t\t-a\t\tAdds an extension to the global list (without the dot)\n\t--remove\t-r\t\tRemoves an extension from the global list\n\t--list\t\t-l\t\tLists all currently disabled extensions\n\t--show\t\t-s   [all]\tShows all unrecognized fileformats. If it's called with 'all', it'll list all fileformats found\n\t--verbose\t-v\t\tRuns Encoder in verbose mode (prints messages while working)\n\t--whitelist-extensionless\tRemoves extensionless files from the blacklist\n\t--blacklist-extensionless\tAdds extensionless files to the blacklist\n\t--default\t\t\tResets the configuration to a default value\n\nCopyright (c) 2017 Henning Hoppe");
                 }
                 #endregion
 
@@ -141,9 +198,9 @@ namespace FileEncodingConverter
                         var alreadyListed = false;
 
                         // checks if the requested extension is already being ignored (eliminating redundancy)
-                        foreach (var ext in excludedExtensions)
+                        foreach (var ext in ExcludedExtensions)
                         {
-                            if (args[i] == ext)
+                            if (args[i].ToLowerInvariant() == ext.ToLowerInvariant())
                             {
                                 alreadyListed = true;
                                 break;
@@ -153,13 +210,13 @@ namespace FileEncodingConverter
                         // if it's not listed, add it
                         if (!alreadyListed)
                         {
-                            extensionsToAdd.Add("." + args[i]);
+                            extensionsToAdd.Add("." + args[i].ToLowerInvariant());
                         }
                     }
 
                     // actually update the list
-                    excludedExtensions.AddRange(extensionsToAdd);
-                    File.WriteAllLines(IgnoreFile, excludedExtensions, Encoding.UTF8);
+                    ExcludedExtensions.AddRange(extensionsToAdd);
+                    File.WriteAllLines(IgnoreFile, ExcludedExtensions, Encoding.UTF8);
                 }
                 #endregion
 
@@ -169,11 +226,11 @@ namespace FileEncodingConverter
                     // remove all listed extensions. It'll ignore non-existent values
                     for (var i = 1; i < args.Length; i++)
                     {
-                        excludedExtensions.Remove("." + args[i]);
+                        ExcludedExtensions.Remove("." + args[i].ToLowerInvariant());
                     }
 
                     // update the list
-                    File.WriteAllLines(IgnoreFile, excludedExtensions, Encoding.UTF8);
+                    File.WriteAllLines(IgnoreFile, ExcludedExtensions, Encoding.UTF8);
                 }
                 #endregion
 
@@ -183,7 +240,7 @@ namespace FileEncodingConverter
                     // I just made this to conform to MS complete ruleset for managed code. Kinda overkill though tbh
                     Console.WriteLine("Globally ignored file-extensions");
 
-                    foreach (var ext in excludedExtensions)
+                    foreach (var ext in ExcludedExtensions)
                     {
                         Console.WriteLine(ext);
                     }
@@ -201,7 +258,7 @@ namespace FileEncodingConverter
                         var extension = Path.GetExtension(ext);
 
                         // Removing any previous occurances, as to avoid duplicates
-                        shownExtensions.RemoveAll((i) => i == extension);
+                        shownExtensions.RemoveAll((i) => i.ToLowerInvariant() == extension.ToLowerInvariant());
                         shownExtensions.Add(extension);
                     }
 
@@ -216,9 +273,9 @@ namespace FileEncodingConverter
                     // If the user specified to not show all extensions, remove the blacklisted ones
                     if (!showAll)
                     {
-                        foreach (var ext in excludedExtensions)
+                        foreach (var ext in ExcludedExtensions)
                         {
-                            shownExtensions.RemoveAll((i) => i == ext);
+                            shownExtensions.RemoveAll((i) => i.ToLowerInvariant() == ext.ToLowerInvariant());
                         }
                     }
 
@@ -226,6 +283,73 @@ namespace FileEncodingConverter
                     foreach (var ext in shownExtensions)
                     {
                         Console.WriteLine(ext);
+                    }
+                }
+                #endregion
+
+                #region --verbose
+                else if (args[0] == "--verbose" || args[0] == "-v")
+                {
+                    Convert(true);
+                }
+                #endregion
+
+                #region --whitelist-extensionless
+                else if (args[0] == "--whitelist-extensionless")
+                {
+                    Properties.Settings.Default.whitelistExtensions = true;
+                    Properties.Settings.Default.Save();
+                }
+                #endregion
+
+                #region --blacklist-extensionless
+                else if (args[0] == "--blacklist-extensionless")
+                {
+                    Properties.Settings.Default.whitelistExtensions = false;
+                    Properties.Settings.Default.Save();
+                }
+                #endregion
+
+                #region --default
+                else if (args[0] == "--default")
+                {
+                    Console.WriteLine("Are you sure you want to reset to defaults? This operation is not reversable. Write 'Yes' and press Enter to confirm");
+                    if (Console.ReadLine().ToLowerInvariant() == "Yes".ToLowerInvariant())
+                    {
+                        ExcludedExtensions.Clear();
+                        ExcludedExtensions.Add(".exe");
+                        ExcludedExtensions.Add(".dll");
+                        ExcludedExtensions.Add(".com");
+                        ExcludedExtensions.Add(".db");
+                        ExcludedExtensions.Add(".sys");
+                        ExcludedExtensions.Add(".png");
+                        ExcludedExtensions.Add(".jpg");
+                        ExcludedExtensions.Add(".jpeg");
+                        ExcludedExtensions.Add(".gif");
+                        ExcludedExtensions.Add(".pdb");
+                        ExcludedExtensions.Add(".mp3");
+                        ExcludedExtensions.Add(".mp4");
+                        ExcludedExtensions.Add(".mov");
+                        ExcludedExtensions.Add(".ogg");
+                        ExcludedExtensions.Add(".wav");
+                        ExcludedExtensions.Add(".webp");
+                        ExcludedExtensions.Add(".obj");
+                        ExcludedExtensions.Add(".bmp");
+                        ExcludedExtensions.Add(".fbx");
+                        ExcludedExtensions.Add(".rar");
+                        ExcludedExtensions.Add(".zip");
+                        ExcludedExtensions.Add(".7z");
+                        ExcludedExtensions.Add(".jar");
+
+                        Properties.Settings.Default.Reset();
+                        Properties.Settings.Default.Save();
+
+                        File.WriteAllLines(IgnoreFile, ExcludedExtensions);
+                        Console.WriteLine("Extension-Database and settings have been reset to default");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Unrecognized input. Encoder will terminate without making any changes");
                     }
                 }
                 #endregion
@@ -241,35 +365,7 @@ namespace FileEncodingConverter
             // If we're not modifying the extension database (don't provide cmd args), that means that we simply want to run the program
             else
             {
-                // enumarate all files in all subdirectories
-                foreach (var filepath in GetFiles(CWD))
-                {
-                    var ignoreFile = false;
-
-                    // determine if the program should ignore the file, based on the file extension
-                    foreach (var ext in excludedExtensions)
-                    {
-                        if (Path.GetExtension(filepath) == ext)
-                        {
-                            ignoreFile = true;
-                            break;
-                        }
-                    }
-
-                    // if the file ís not being ignored, read all bytes,
-                    // convert them to UTF-8 and write them to the file again
-                    if (!ignoreFile)
-                    {
-                        File.WriteAllBytes(
-                            filepath,
-                            Encoding.Convert(
-                                GetEncoding(filepath),
-                                Encoding.UTF8,
-                                File.ReadAllBytes(filepath)
-                            )
-                        );
-                    }
-                }
+                Convert();
             }
         }
     }
