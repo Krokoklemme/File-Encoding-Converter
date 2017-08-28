@@ -147,9 +147,13 @@ namespace FileEncodingConverter
                             totalConverted++;
                         }
                     }
+					catch (UnauthorizedAccessException ex)
+					{
+						Console.Error.WriteLine(ex.Message);
+					}
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine("Failed to convert " + filepath + ":\n" + ex.Message + "\n" + ex.StackTrace);
+                        Console.Error.WriteLine("Failed to convert " + filepath + ":\n" + ex.Message);
                     }
                 }
             }
@@ -358,12 +362,12 @@ namespace FileEncodingConverter
                     {
                         for (var i = 1; i < args.Length; i++)
                         {
-                            Process.Start(new ProcessStartInfo
-                            {
-                                FileName = @"https://fileinfo.com/extension/" + args[i],
-                                CreateNoWindow = true,
-                                UseShellExecute = true
-                            });
+							Process.Start(new ProcessStartInfo
+							{
+								FileName = @"https://fileinfo.com/extension/" + args[i],
+								CreateNoWindow = true,
+								UseShellExecute = true
+							}).Dispose();
                         }
                     }
                     else
