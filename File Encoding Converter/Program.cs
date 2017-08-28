@@ -103,6 +103,10 @@ namespace FileEncodingConverter
             return Encoding.ASCII;
         }
 
+		/// <summary>
+		/// Reencode all files in the current working directory to UTF-8
+		/// </summary>
+		/// <param name="verbose">Specifes whether or not this function shall give a verbose ouput</param>
         protected internal static void Convert(bool verbose = false)
         {
             var totalConverted = 0;
@@ -111,7 +115,7 @@ namespace FileEncodingConverter
             foreach (var filepath in GetFiles(CWD))
             {
                 // If the file has no extension and extensionless files aren't whitelisted, there's no point in continuing
-                if (!Path.HasExtension(filepath) && !Properties.Settings.Default.WhitelistExtensions)
+                if (!Path.HasExtension(filepath) && !Properties.Settings.Default.WhitelistExtensionless)
                     continue;
 
                 var ignoreFile = false;
@@ -193,7 +197,7 @@ namespace FileEncodingConverter
                 ".jar"
             };
 
-            Properties.Settings.Default.WhitelistExtensions = false;
+            Properties.Settings.Default.WhitelistExtensionless = false;
             Properties.Settings.Default.Save();
 
             File.WriteAllLines(IgnoreFile, ExcludedExtensions);
@@ -223,6 +227,7 @@ namespace FileEncodingConverter
             }
 
             // If we have cmd-line args, that indidcates that we want to do something with the extension "database"
+			// EDIT: a couple of weeks later, I realized that I should've used a library for this...
             if (args.Length != 0)
             {
                 #region --help
@@ -342,7 +347,7 @@ namespace FileEncodingConverter
                 #region --whitelist-extensionless
                 else if (args[0] == "--whitelist-extensionless")
                 {
-                    Properties.Settings.Default.WhitelistExtensions = true;
+                    Properties.Settings.Default.WhitelistExtensionless = true;
                     Properties.Settings.Default.Save();
                 }
                 #endregion
@@ -350,7 +355,7 @@ namespace FileEncodingConverter
                 #region --blacklist-extensionless
                 else if (args[0] == "--blacklist-extensionless")
                 {
-                    Properties.Settings.Default.WhitelistExtensions = false;
+                    Properties.Settings.Default.WhitelistExtensionless = false;
                     Properties.Settings.Default.Save();
                 }
                 #endregion
@@ -380,7 +385,7 @@ namespace FileEncodingConverter
                 #region --default
                 else if (args[0] == "--default")
                 {
-                    Console.WriteLine("Are you sure you want to reset to defaults? This operation is not reversable. Write 'Yes' and press Enter to confirm");
+                    Console.WriteLine("Are you sure you want to reset to defaults? This operation is not reversable. Type 'Yes' and press Enter to confirm");
                     if (Console.ReadLine().ToLowerInvariant() == "Yes".ToLowerInvariant())
                     {
                         ResetToDefaults();
