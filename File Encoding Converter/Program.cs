@@ -26,14 +26,14 @@ using System.Diagnostics;
 
 namespace FileEncodingConverter
 {
-    class Program
+    static class Program
     {
         /// <summary>
         /// Enumerates all files in the specified directory and its subdirectories recursively
         /// </summary>
         /// <param name="path">Path of the root directory</param>
         /// <returns><see cref="IEnumerable{T}"/> of all files</returns>
-        static IEnumerable<string> GetFiles(string path)
+        public static IEnumerable<string> GetFiles(string path)
         {
             Queue<string> queue = new Queue<string>();
             queue.Enqueue(path);
@@ -85,7 +85,7 @@ namespace FileEncodingConverter
         /// </summary>
         /// <param name="filename">Name of the file to inspect</param>
         /// <returns><see cref="Encoding"/> of the specified file</returns>
-        public static Encoding GetEncoding(string filename)
+        public static Encoding GetFileEncoding(string filename)
         {
             // Allocating room for and reading the BOM
             var bom = new byte[4];
@@ -100,14 +100,14 @@ namespace FileEncodingConverter
             if (bom[0] == 0xff && bom[1] == 0xfe) return Encoding.Unicode; //UTF-16LE
             if (bom[0] == 0xfe && bom[1] == 0xff) return Encoding.BigEndianUnicode; //UTF-16BE
             if (bom[0] == 0 && bom[1] == 0 && bom[2] == 0xfe && bom[3] == 0xff) return Encoding.UTF32;
-            return Encoding.ASCII;
+            return Encoding.UTF8;
         }
 
-		/// <summary>
-		/// Reencode all files in the current working directory to UTF-8
-		/// </summary>
-		/// <param name="verbose">Specifes whether or not this function shall give a verbose ouput</param>
-        protected internal static void Convert(bool verbose = false)
+        /// <summary>
+        /// Reencode all files in the current working directory to UTF-8
+        /// </summary>
+        /// <param name="verbose">Specifes whether or not this function shall give a verbose ouput</param>
+        public static void ConvertToUtf8(bool verbose = false)
         {
             var totalConverted = 0;
 
@@ -136,13 +136,23 @@ namespace FileEncodingConverter
                 {
                     try
                     {
+						byte[] t = File.ReadAllBytes(filepath);
+						byte[] byteArray = Encoding.Convert(GetFileEncoding(filepath), Encoding.UTF8, t);
+
+                        // TODO: Figure out why this doesn't work
+						if (!Properties.Settings.Default.AddBom)
+						{
+							byte[] bfr = new byte[byteArray.Length - 3];
+
+							for (int i = 3; i < byteArray.Length; i++)
+							{
+								bfr[i - 3] = byteArray[i];
+							}
+						}
+
                         File.WriteAllBytes(
                             filepath,
-                            Encoding.Convert(
-                                GetEncoding(filepath),
-                                Encoding.UTF8,
-                                File.ReadAllBytes(filepath)
-                            )
+							byteArray
                         );
 
                         if (verbose)
@@ -170,6 +180,9 @@ namespace FileEncodingConverter
 
         private static void ResetToDefaults()
         {
+            // Those are a few extensions that are to be
+            // ignored by default. I choose the ones I
+            // could think of at that moment.
             ExcludedExtensions = new List<string>
             {
                 ".exe",
@@ -204,9 +217,15 @@ namespace FileEncodingConverter
         }
 
         // convenience variables
-        protected internal static List<string> ExcludedExtensions { get; set; }
-        protected internal static string IgnoreFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore");
-        protected internal static string CWD => Directory.GetCurrentDirectory();
+        internal static List<string> ExcludedExtensions { get; set; }
+        internal static string IgnoreFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore");
+        internal static string CWD => Directory.GetCurrentDirectory();
+
+
+        public static void PrintFormatted(this Exception exception)
+        {
+            Console.Error.WriteLine($"Exception thrown in {exception.Source} (in {exception.TargetSite.Name}): {exception.Message}\n{exception.StackTrace}\n\nHRESULT is {exception.HResult}\nHelp-link: {exception.HelpLink}");
+        }
 
         static void Main(string[] args)
         {
@@ -221,23 +240,33 @@ namespace FileEncodingConverter
             {
                 ExcludedExtensions.AddRange(File.ReadAllLines(IgnoreFile));
             }
-            catch (FileNotFoundException)
+            catch (Exception ex)
             {
-                File.Create(IgnoreFile).Dispose();
+                ex.PrintFormatted();
             }
 
             // If we have cmd-line args, that indidcates that we want to do something with the extension "database"
 			// EDIT: a couple of weeks later, I realized that I should've used a library for this...
             if (args.Length != 0)
             {
-                #region --help
-                if (args[0] == "--help" || args[0] == "-h")
+				if (args[0] == "--help" || args[0] == "-h")
                 {
-                    Console.WriteLine("\tFile Encoding Converter\n\nTurns the encoding of all files into UTF-8 and\nexcludes files with a globally specified extensions\n\n\t--help\t\t-h\t\tShows this help\n\t--add\t\t-a\t\tAdds an extension to the global list (without the dot)\n\t--remove\t-r\t\tRemoves an extension from the global list\n\t--list\t\t-l\t\tLists all currently disabled extensions\n\t--show\t\t-s   [all]\tShows all unrecognized fileformats. If it's called with 'all', it'll list all fileformats found\n\t--verbose\t-v\t\tRuns Encoder in verbose mode (prints messages while working)\n\t--whitelist-extensionless\tRemoves extensionless files from the blacklist\n\t--blacklist-extensionless\tAdds extensionless files to the blacklist\n\t--info\t-i   [extension...]\tLooks up information on the specified filetypes\n\t--default\t\t\tResets the configuration to a default value\n\nCopyright (c) 2017 Henning Hoppe");
+                    Console.WriteLine("\tFile Encoding Converter\n\nTurns the encoding of all files into UTF-8 and\nexcludes files with a globally specified extensions\n" +
+						"\n\t--help\t\t-h\t\tShows this help" +
+						"\n\t--add\t\t-a\t\tAdds an extension to the global list (without the dot)" +
+						"\n\t--remove\t-r\t\tRemoves an extension from the global list" +
+						"\n\t--list\t\t-l\t\tLists all currently disabled extensions" +
+						"\n\t--show\t\t-s   [all]\tShows all unrecognized fileformats. If it's called with 'all', it'll list all fileformats found" +
+						"\n\t--verbose\t-v\t\tRuns Encoder in verbose mode (prints messages while working)" +
+						"\n\t--whitelist-extensionless\tRemoves extensionless files from the blacklist" +
+						"\n\t--blacklist-extensionless\tAdds extensionless files to the blacklist" +
+						"\n\t--bom\t\t\t\tAdds the UTF-8 BOM to the file (default)" +
+						"\n\t--no-bom\t\t\tSuppresses addition of BOM to the file" +
+						"\n\t--info\t-i   [extension...]\tLooks up information on the specified filetypes" +
+						"\n\t--default\t\t\tResets the configuration to a default value" +
+						"\n\nCopyright (c) 2017 Henning Hoppe");
                 }
-                #endregion
 
-                #region --add
                 else if (args[0] == "--add" || args[0] == "-a")
                 {
                     var extensionsToAdd = new List<string>();
@@ -268,9 +297,7 @@ namespace FileEncodingConverter
                     ExcludedExtensions.AddRange(extensionsToAdd);
                     File.WriteAllLines(IgnoreFile, ExcludedExtensions, Encoding.UTF8);
                 }
-                #endregion
 
-                #region --remove
                 else if (args[0] == "--remove" || args[0] == "-r")
                 {
                     // remove all listed extensions. It'll ignore non-existent values
@@ -282,9 +309,7 @@ namespace FileEncodingConverter
                     // update the list
                     File.WriteAllLines(IgnoreFile, ExcludedExtensions, Encoding.UTF8);
                 }
-                #endregion
 
-                #region --list
                 else if (args[0] == "--list" || args[0] == "-l")
                 {
                     // I just made this to conform to MS complete ruleset for managed code. Kinda overkill though tbh
@@ -295,9 +320,7 @@ namespace FileEncodingConverter
                         Console.WriteLine(ext);
                     }
                 }
-                #endregion
 
-                #region --show
                 else if (args[0] == "--show" || args[0] == "-s")
                 {
                     var shownExtensions = new List<string>();
@@ -307,7 +330,7 @@ namespace FileEncodingConverter
                     {
                         var extension = Path.GetExtension(ext);
 
-                        // Removing any previous occurances, as to avoid duplicates
+                        // Removing any previous occurances to avoid duplicates
                         shownExtensions.RemoveAll((i) => i.ToLowerInvariant() == extension.ToLowerInvariant());
                         shownExtensions.Add(extension);
                     }
@@ -335,32 +358,36 @@ namespace FileEncodingConverter
                         Console.WriteLine(ext);
                     }
                 }
-                #endregion
 
-                #region --verbose
                 else if (args[0] == "--verbose" || args[0] == "-v")
                 {
-                    Convert(true);
+                    ConvertToUtf8(true);
                 }
-                #endregion
 
-                #region --whitelist-extensionless
                 else if (args[0] == "--whitelist-extensionless")
                 {
                     Properties.Settings.Default.WhitelistExtensionless = true;
                     Properties.Settings.Default.Save();
                 }
-                #endregion
-
-                #region --blacklist-extensionless
+				
                 else if (args[0] == "--blacklist-extensionless")
                 {
                     Properties.Settings.Default.WhitelistExtensionless = false;
                     Properties.Settings.Default.Save();
                 }
-                #endregion
 
-                #region --info
+				else if (args[0] == "--bom")
+				{
+					Properties.Settings.Default.AddBom = true;
+					Properties.Settings.Default.Save();
+				}
+
+				else if (args[0] == "--no-bom")
+				{
+					Properties.Settings.Default.AddBom = false;
+					Properties.Settings.Default.Save();
+				}
+				
                 else if (args[0] == "--info" || args[0] == "-i")
                 {
                     if (args.Length >= 2)
@@ -380,9 +407,7 @@ namespace FileEncodingConverter
                         Console.Error.WriteLine("You must specify a file to look up");
                     }
                 }
-                #endregion
 
-                #region --default
                 else if (args[0] == "--default")
                 {
                     Console.WriteLine("Are you sure you want to reset to defaults? This operation is not reversable. Type 'Yes' and press Enter to confirm");
@@ -396,20 +421,17 @@ namespace FileEncodingConverter
                         Console.WriteLine("Unrecognized input. Encoder will terminate without making any changes");
                     }
                 }
-                #endregion
 
-                #region Unknown
                 else
                 {
                     Console.Error.WriteLine("Unrecognized option '" + args[0] + "'\nTry --help or -h for usage instructions");
                 }
-                #endregion
             }
 
             // If we're not modifying the extension database (don't provide cmd args), that means that we simply want to run the program
             else
             {
-                Convert();
+                ConvertToUtf8();
             }
         }
     }

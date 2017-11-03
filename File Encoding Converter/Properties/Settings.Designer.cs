@@ -34,5 +34,17 @@ namespace FileEncodingConverter.Properties {
                 this["WhitelistExtensionless"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool AddBom {
+            get {
+                return ((bool)(this["AddBom"]));
+            }
+            set {
+                this["AddBom"] = value;
+            }
+        }
     }
 }
