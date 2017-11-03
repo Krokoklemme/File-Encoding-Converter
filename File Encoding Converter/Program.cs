@@ -112,7 +112,7 @@ namespace FileEncodingConverter
             var totalConverted = 0;
 
             // enumarate all files in all subdirectories
-            foreach (var filepath in GetFiles(CWD))
+            foreach (var filepath in GetFiles(Cwd))
             {
                 // If the file has no extension and extensionless files aren't whitelisted, there's no point in continuing
                 if (!Path.HasExtension(filepath) && !Properties.Settings.Default.WhitelistExtensionless)
@@ -216,19 +216,21 @@ namespace FileEncodingConverter
             File.WriteAllLines(IgnoreFile, ExcludedExtensions);
         }
 
-        // convenience variables
+        // convenience variables. I am aware that this is considered bad practice
+        // and it would bite me if I ever wanted to scale this tool, but that won't
+        // happen anyway, so I'm not thinking too much about it
         internal static List<string> ExcludedExtensions { get; set; }
         internal static string IgnoreFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore");
-        internal static string CWD => Directory.GetCurrentDirectory();
+        internal static string Cwd => Directory.GetCurrentDirectory();
 
 
-        public static void PrintFormatted(this Exception exception)
-        {
-            Console.Error.WriteLine($"Exception thrown in {exception.Source} (in {exception.TargetSite.Name}): {exception.Message}\n{exception.StackTrace}\n\nHRESULT is {exception.HResult}\nHelp-link: {exception.HelpLink}");
-        }
+        public static void PrintFormatted(this Exception exception) => Console.Error.WriteLine($"Exception thrown in {exception.Source} (in {exception.TargetSite.Name}): {exception.Message}\n{exception.StackTrace}\n\nHRESULT is {exception.HResult}\nHelp-link: {exception.HelpLink}");
 
         static void Main(string[] args)
         {
+            // This branch is usually executed on the first start
+            // It'll check if an 'ignore' """""database""""" exists
+            // and creates a default one if not
             if (!File.Exists(IgnoreFile))
             {
                 ResetToDefaults();
@@ -326,7 +328,7 @@ namespace FileEncodingConverter
                     var shownExtensions = new List<string>();
                     var showAll = false;
 
-                    foreach (var ext in GetFiles(CWD))
+                    foreach (var ext in GetFiles(Cwd))
                     {
                         var extension = Path.GetExtension(ext);
 
